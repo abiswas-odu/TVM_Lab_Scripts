@@ -40,36 +40,34 @@ def ReadFileParams(filePathName)
    f_file.close()
    return lineStr 
 
-
-con = cx_Oracle.connect(connectString)
+con = None
 
 while 1:
    #check if new file in remoteFilePath
-   filePathName = ''
-   if ??:
-
-   else:
-      continue;
-
-   #Process new file
-
-   lab_id = ReadLabID(filePathName)
-   lab_params = ReadFileParams(filePathName)
-
-   #Query DBMS for records based on lab_id
-   cur = con.cursor()
-   dcl = 'select ... where lab_id=' + lab_id
-   cur.execute(dcl)
-   for row in cur:
-      #process row
-      #if heamatology insert data
-      dml = 'update ... '
-      cur.execute(...)
-      con.commit()
-   cur.close()
-
-   #if no lab_id found or no hematology records or format error
-      #move file to failureFilePath
-   #else:
-      #move file to successFilePath
+   files = os.listdir(remoteFilePath)
+   for f in files:     #Check if any files are present in the list
+      try:
+         #Process new file
+         lab_id = ReadLabID(f)
+         lab_params = ReadFileParams(f)
+         
+         #Query DBMS for records based on lab_id and test type
+         con = cx_Oracle.connect(connectString)
+         cur = con.cursor()
+         dcl = 'select ... where lab_id=' + lab_id
+         cur.execute(dcl)
+         for row in cur:
+            #process row, if heamatology insert data
+            dml = 'update ... '
+            cur.execute(...)
+            con.commit()
+         #move file to successFilePath
+      except:       
+         #if no lab_id found or no hematology records or format error
+         #move file to failureFilePath
+      finally:
+         cur.close()
+         if con is not None:
+            con.close()
+   
 
