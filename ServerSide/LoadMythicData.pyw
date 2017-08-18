@@ -8,9 +8,9 @@ import shutil
 
 dbUser='tvm'
 connectString = u'tvm/tvm@127.0.0.1:1521/XE'
-remoteFilePath = "C:\\M18\\"
-successFilePath = "C:\\lab_results\\M18_Success\\"
-failureFilePath = "C:\\lab_results\\M18_Failed\\"
+remoteFilePath = "E:\\M18\\"
+successFilePath = "E:\\lab_results\\M18_Success\\"
+failureFilePath = "E:\\lab_results\\M18_Failed\\"
 MACHINE_ID=1
 con = None
 
