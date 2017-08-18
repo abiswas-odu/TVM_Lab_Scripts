@@ -10,6 +10,7 @@ from tkinter import ttk
 from tkinter.filedialog import askdirectory
 from PIL import Image
 from PIL import ImageTk
+from tkinter import messagebox
 ##GLOBAL DECLARATIONS
 port = 'COM3'   #COM port to which the Mythic machine is connected
 baud = 9600     #Set baud rate from documentation 
@@ -21,6 +22,7 @@ loading_rel_path='loading.gif'
 currentTestCount = 0
 last_date = datetime.datetime.now()
 ser = serial.Serial()
+top = Tk()
 
 #Move files from local directory to remote server drive 
 def MoveLocalFiles(localFilePath,remoteFilePath):
@@ -31,7 +33,7 @@ def MoveLocalFiles(localFilePath,remoteFilePath):
 
 class Screen:
     def __init__(self,master):
-        master.wm_title("SRL Mythic Machine Reader (" + port +")")
+        master.wm_title("SRL Mythic Machine Reader")
         master.minsize(width=400, height=150)
         master.resizable(width=False, height=False)
         self.frame = Frame(master)
@@ -55,30 +57,41 @@ class Screen:
         self.dataFrame = Frame(self.frame)
         self.dataFrame.grid(row=1,column=2, columnspan=2, sticky=W+E+N+S)
 
+        portDataLabel = Label(self.dataFrame)
+        portDataLabel["text"] = 'Mythic COM port: '
+        self.varPort = StringVar(master)
+        self.varPort.set(port)
+        portDataLabel.grid(row=0,column=0,sticky=E)
+        portText = Entry(self.dataFrame, textvariable=self.varPort,width=50)
+        portText.grid(row=0,column=1)
+		
         localDataLabel = Label(self.dataFrame)
         localDataLabel["text"] = 'Local Data Directory: '
-        localDataLabel.grid(row=0,column=0,)
+        localDataLabel.grid(row=1,column=0,sticky=E)
         self.varLocal = StringVar(master)
         self.varLocal.set(localFilePath)
         w = Entry(self.dataFrame, textvariable= self.varLocal,width=50)
-        w.grid(row=0,column=1)
+        w.grid(row=1,column=1)
         dirButLocal = Button(self.dataFrame, text='...', command = self.askdirectoryLocal)
-        dirButLocal.grid(row=0,column=2)
+        dirButLocal.grid(row=1,column=2)
 
         remoteDataLabel = Label(self.dataFrame)
         remoteDataLabel["text"] = 'Network Data Directory: '
-        remoteDataLabel.grid(row=1,column=0, sticky=E)
+        remoteDataLabel.grid(row=2,column=0, sticky=E)
         self.varRemote = StringVar(master)
         self.varRemote.set(remoteFilePath)
         w1 = Entry(self.dataFrame, textvariable= self.varRemote,width=50)
-        w1.grid(row=1,column=1, sticky=E)
+        w1.grid(row=2,column=1, sticky=E)
         dirButRemote = Button(self.dataFrame, text='...', command = self.askdirectoryRemote)
-        dirButRemote.grid(row=1,column=2, sticky=E)
+        dirButRemote.grid(row=2,column=2, sticky=E)
         
         self.con_button = Button(self.frame, text="Connect to Mythic", command=self.Connected,width=30)
         #self.close_button = Button(self.frame, text="Close",command=quit)
         self.con_button.grid(row=2, column=0, columnspan=4, padx=15, pady=15)
         #self.close_button.grid(row=2, column=2, columnspan=2, padx=15, pady=15)
+
+        self.readThreadStop = threading.Event()
+        self.readThread = threading.Thread(target=self.ReadMythic, args=(1,self.readThreadStop))
         self.Connected()
 
     def ReadMythic(self, arg1, stop_event):
@@ -103,12 +116,12 @@ class Screen:
                if isComplete==0 and data_left==0:  # Check if communication has finished and push result to file     
                   filename = datetime.datetime.now().strftime('%y-%m-%d_%H-%M-%S') + '_ID_' + str(resultID) + '.csv'
                   # Save result in local location
-                  absolutefilename = os.path.join(localFilePath,filename)
+                  absolutefilename = os.path.join(self.varLocal.get(),filename)
                   f = open(absolutefilename, 'a+')
                   f.write(resultLine)
                   f.close()
-                  if os.path.exists(remoteFilePath): # Check is network drive is available or not
-                     MoveLocalFiles(localFilePath,remoteFilePath)  # Move files from local drive to network drive
+                  if os.path.exists(self.varRemote.get()): # Check is network drive is available or not
+                     MoveLocalFiles(self.varLocal.get(),self.varRemote.get())  # Move files from local drive to network drive
                   #Re-initialize varialbe for next communication 
                   isComplete = 1           
                   resultLine = ''
@@ -127,7 +140,7 @@ class Screen:
         global ser
         global last_date
         try:
-           ser = serial.Serial(port, baud, timeout=1)
+           ser = serial.Serial(self.varPort.get(), baud, timeout=1)
         except serial.SerialException:
            self.DisConnected()
            return
@@ -141,6 +154,7 @@ class Screen:
             last_date=now
             currentTestCount=0
         self.count_label.configure(text=str(currentTestCount)+" test results processed on "+now.strftime("%d/%m/%Y"))
+
         self.readThreadStop = threading.Event()
         self.readThread = threading.Thread(target=self.ReadMythic, args=(1,self.readThreadStop))
         self.readThread.start()
@@ -172,7 +186,12 @@ class Screen:
        dirname = askdirectory()
        if dirname:
           self.varRemote.set(dirname)
+    def on_closing(self):
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            self.readThreadStop.set()
+            time.sleep(2)
+            top.destroy()
 
-top = Tk()
 app = Screen(top)
+top.protocol("WM_DELETE_WINDOW",lambda: app.on_closing())
 top.mainloop()
