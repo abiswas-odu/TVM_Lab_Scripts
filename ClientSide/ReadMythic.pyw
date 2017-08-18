@@ -36,42 +36,5 @@ if __name__=='__main__':
     for n,s in scan():
         print ("(%d) %s" % (n,s))
 
-#Open Mythic port and init some flag variables
-ser = serial.Serial(port, baud, timeout=1)
-isComplete = 1
-resultID = 1
-resultLine = ''
-
-while 1:
-  tdata = ser.read()           # Wait forever for anything
-  data_left = ser.inWaiting()  # Get the number of characters ready to be read
-  tdata += ser.read(data_left) # Do the read and combine it with the first character
-  print("Reading " + str(data_left) + "bytes.") 
-  line = tdata.decode('utf-8') # Convert raw bytes to ascii data  
-  line = line.strip()          # Remove leading and trailing whitespace characters 
-  if line:                     # If it isn't a blank line
-     isComplete = 0
-     resultLine += line        # Add to result line 
-
-  if isComplete==0 and data_left==0:  # Check if communication has finished and push result to file
-      
-     filename = datetime.datetime.now().strftime('%y-%m-%d_%H-%M-%S') + '_ID_' + str(resultID) + '.csv'
-     if os.path.exists(remoteFilePath):          # Check is network drive is available or not
-        absolutefilename = remoteFilePath + filename
-        f = open(absolutefilename, 'a+')
-        f.write(resultLine)
-        f.close()
-        MoveLocalFiles(localFilePath,remoteFilePath)  # Move files from local drive to network drive 
-     else:                                            # If network drive is down save result in local location 
-        absolutefilename = localFilePath + filename
-        f = open(absolutefilename, 'a+')
-        f.write(resultLine)
-        f.close()
-     #Re-initialize varialbe for next communication 
-     isComplete = 1           
-     resultLine = ''
-     resultID += 1
-     
-ser.close()
 
 

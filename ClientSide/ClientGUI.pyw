@@ -4,6 +4,7 @@ import time
 import datetime
 import shutil
 import os.path
+import threading
 from tkinter import *
 from tkinter import ttk
 from tkinter.filedialog import askdirectory
@@ -25,7 +26,8 @@ ser = serial.Serial()
 def MoveLocalFiles(localFilePath,remoteFilePath):
     files = os.listdir(localFilePath)
     for f in files:
-       shutil.move(f, remoteFilePath)
+       filePath = os.path.join(localFilePath,f)
+       shutil.move(filePath, remoteFilePath)
 
 class Screen:
     def __init__(self,master):
@@ -79,7 +81,51 @@ class Screen:
         #self.close_button.grid(row=2, column=2, columnspan=2, padx=15, pady=15)
         self.Connected()
 
+    def ReadMythic(self, arg1, stop_event):
+        global currentTestCount
+        global ser
+        global last_date
+        isComplete = 1
+        resultID = 1
+        resultLine = ''
+        try:
+            while (not stop_event.is_set()):
+               tdata = ser.read()           # Wait forever for anything
+               data_left = ser.inWaiting()  # Get the number of characters ready to be read
+               tdata += ser.read(data_left) # Do the read and combine it with the first character
+               print("Reading " + str(data_left) + "bytes.") 
+               line = tdata.decode('utf-8') # Convert raw bytes to ascii data  
+               line = line.strip()          # Remove leading and trailing whitespace characters 
+               if line:                     # If it isn't a blank line
+                   isComplete = 0
+                   resultLine += line        # Add to result line 
+
+               if isComplete==0 and data_left==0:  # Check if communication has finished and push result to file     
+                  filename = datetime.datetime.now().strftime('%y-%m-%d_%H-%M-%S') + '_ID_' + str(resultID) + '.csv'
+                  # Save result in local location
+                  absolutefilename = os.path.join(localFilePath,filename)
+                  f = open(absolutefilename, 'a+')
+                  f.write(resultLine)
+                  f.close()
+                  if os.path.exists(remoteFilePath): # Check is network drive is available or not
+                     MoveLocalFiles(localFilePath,remoteFilePath)  # Move files from local drive to network drive
+                  #Re-initialize varialbe for next communication 
+                  isComplete = 1           
+                  resultLine = ''
+                  resultID += 1
+                  now = datetime.datetime.now()
+                  if last_date.strftime("%d/%m/%Y") != now.strftime("%d/%m/%Y"):
+                      last_date=now
+                      currentTestCount=0
+                  currentTestCount += 1
+                  self.count_label.configure(text=str(currentTestCount)+" test results processed on "+now.strftime("%d/%m/%Y"))
+        except serial.SerialException:
+            self.DisConnected()
+
     def Connected(self):
+        global currentTestCount
+        global ser
+        global last_date
         try:
            ser = serial.Serial(port, baud, timeout=1)
         except serial.SerialException:
@@ -92,45 +138,18 @@ class Screen:
         self.con_button.config(text='Disconnect from Mythic',command=self.DisConnected, width=30)
         now = datetime.datetime.now()
         if last_date.strftime("%d/%m/%Y") != now.strftime("%d/%m/%Y"):
+            last_date=now
             currentTestCount=0
         self.count_label.configure(text=str(currentTestCount)+" test results processed on "+now.strftime("%d/%m/%Y"))
-        isComplete = 1
-        resultID = 1
-        resultLine = ''
-
-        while 1:
-           tdata = ser.read()           # Wait forever for anything
-           data_left = ser.inWaiting()  # Get the number of characters ready to be read
-           tdata += ser.read(data_left) # Do the read and combine it with the first character
-           print("Reading " + str(data_left) + "bytes.") 
-           line = tdata.decode('utf-8') # Convert raw bytes to ascii data  
-           line = line.strip()          # Remove leading and trailing whitespace characters 
-           if line:                     # If it isn't a blank line
-               isComplete = 0
-               resultLine += line        # Add to result line 
-
-           if isComplete==0 and data_left==0:  # Check if communication has finished and push result to file     
-              filename = datetime.datetime.now().strftime('%y-%m-%d_%H-%M-%S') + '_ID_' + str(resultID) + '.csv'
-              # Save result in local location
-              absolutefilename = join(localFilePath,filename)
-              f = open(absolutefilename, 'a+')
-              f.write(resultLine)
-              f.close()
-              if os.path.exists(remoteFilePath): # Check is network drive is available or not
-                 MoveLocalFiles(localFilePath,remoteFilePath)  # Move files from local drive to network drive
-              #Re-initialize varialbe for next communication 
-              isComplete = 1           
-              resultLine = ''
-              resultID += 1
-              now = datetime.datetime.now()
-              if last_date.strftime("%d/%m/%Y") != now.strftime("%d/%m/%Y"):
-                  currentTestCount=0
-              currentTestCount += 1
-              self.count_label.configure(text=str(currentTestCount)+" test results processed on "+now.strftime("%d/%m/%Y"))
+        self.readThreadStop = threading.Event()
+        self.readThread = threading.Thread(target=self.ReadMythic, args=(1,self.readThreadStop))
+        self.readThread.start()
 
     def DisConnected(self):
         global ser
         global currentTestCount
+        self.readThreadStop.set()
+        time.sleep(2)
         try:
            ser.close()
         except serial.SerialException:
