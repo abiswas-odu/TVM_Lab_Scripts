@@ -67,7 +67,8 @@ from patient_account pa,m_parameters m, M_METHODS_EXP mexp \
 where m.SERVICE_SUBTYPE=pa.SERVICE_SUBTYPE \
 and m.SERVICE_TYPE=\'HAEMATOLOGY\' and  m.PARAMETER_ID=mexp.PARAMETER_ID \
 and m.STATUS=\'Active\' and mexp.MACHINE_ID= :1 \
-and lab_id = :2 and trunc(pa.REPORT_DATE) = TO_DATE( :3 , \'MM/DD/YYYY\')'
+and lab_id = :2 and trunc(pa.REPORT_DATE) = TO_DATE( :3 , \'MM/DD/YYYY\') and \
+(pa.SERVICE_REGISTRATION_ID,m.PARAMETER_ID) NOT IN (select SERVICE_REGISTRATION_ID,PARAMETER_ID from t_results)'
        curSelect.execute(dcl,(MACHINE_ID,mythicResult.lab_id,dateStr))
        isLoaded = 0; 
        for row in curSelect:
