@@ -6,11 +6,10 @@ import datetime
 import time
 import shutil
 
-dbUser='tvm'
-connectString = u'tvm/tvm@127.0.0.1:1521/XE'
-remoteFilePath = "E:\\M18\\"
-successFilePath = "E:\\lab_results\\M18_Success\\"
-failureFilePath = "E:\\lab_results\\M18_Failed\\"
+connectString = u'test/test@127.0.0.1:1521/XE'
+remoteFilePath = "F:\\lab_results\\M18\\"
+successFilePath = "F:\\lab_results\\M18_Success\\"
+failureFilePath = "F:\\lab_results\\M18_Failed\\"
 MACHINE_ID=1
 con = None
 
@@ -58,19 +57,21 @@ def StoreResults(mythicResult):
     dateStr = mythicResult.test_date.strftime('%m/%d/%Y')
     ret_val=0;
     try:
-       #Query DBMS for records based on lab_id and date
        con = cx_Oracle.connect(connectString)
+       #Query DBMS for records based on lab_id and date
        curSelect = con.cursor()
        curInsert = con.cursor() 
-       dcl = 'SELECT pa.SERVICE_REGISTRATION_ID,mexp.METHOD_ACRONYM,m.PARAMETER_ID \
-from patient_account pa,m_parameters m, M_METHODS_EXP mexp \
+       dcl = 'select psr.SERVICE_REGISTRATION_ID, mexp.METHOD_ACRONYM, psr.PARAMETER_ID from \
+(SELECT MIN(pa.SERVICE_REGISTRATION_ID) as SERVICE_REGISTRATION_ID, m.PARAMETER_ID \
+from patient_account pa,m_parameters m \
 where m.SERVICE_SUBTYPE=pa.SERVICE_SUBTYPE \
-and m.SERVICE_TYPE=\'HAEMATOLOGY\' and  m.PARAMETER_ID=mexp.PARAMETER_ID \
-and m.STATUS=\'Active\' and mexp.MACHINE_ID= :1 \
-and lab_id = :2 and trunc(pa.REPORT_DATE) = TO_DATE( :3 , \'MM/DD/YYYY\') and \
-(pa.SERVICE_REGISTRATION_ID,m.PARAMETER_ID) NOT IN (select SERVICE_REGISTRATION_ID,PARAMETER_ID from t_results)'
-       curSelect.execute(dcl,(MACHINE_ID,mythicResult.lab_id,dateStr))
-       isLoaded = 0; 
+and m.SERVICE_TYPE=\'HAEMATOLOGY\' and m.STATUS=\'Active\' \
+and lab_id = :1 and trunc(pa.REPORT_DATE) = TO_DATE( :2 , \'MM/DD/YYYY\') \
+and (pa.SERVICE_REGISTRATION_ID,m.PARAMETER_ID) NOT IN (select SERVICE_REGISTRATION_ID,PARAMETER_ID from t_results) \
+group by m.PARAMETER_ID) psr, M_METHODS_EXP mexp \
+where psr.PARAMETER_ID=mexp.PARAMETER_ID and mexp.MACHINE_ID= :3'
+       curSelect.execute(dcl,(mythicResult.lab_id,dateStr,MACHINE_ID))
+       isLoaded = 0;
        for row in curSelect:
          #process row
          acr_key = row[1]
