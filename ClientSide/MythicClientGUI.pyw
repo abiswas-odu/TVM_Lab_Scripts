@@ -50,8 +50,7 @@ class Screen:
         self.msg_label = Label(self.msgFrame, text="Connecting...",width=45, wraplength=330)
         self.msg_label.grid(row=0,column=0, sticky=N)
         
-        now = datetime.datetime.now()
-        self.count_label = Label(self.msgFrame, text=str(currentTestCount)+" test results processed on "+now.strftime("%d/%m/%Y"),font=("Courier", 15),width=40, height=5, wraplength=330)
+        self.count_label = Label(self.msgFrame, text=str(currentTestCount)+" test results processed as of "+last_date.strftime("%d/%m/%Y %H:%M:%S"),font=("Courier", 15),width=40, height=5, wraplength=330)
         self.count_label.grid(row=1,column=0, sticky=S)
 
         self.dataFrame = Frame(self.frame)
@@ -131,7 +130,7 @@ class Screen:
                       last_date=now
                       currentTestCount=0
                   currentTestCount += 1
-                  self.count_label.configure(text=str(currentTestCount)+" test results processed on "+now.strftime("%d/%m/%Y"))
+                  self.count_label.configure(text=str(currentTestCount)+" test results processed as of "+last_date.strftime("%d/%m/%Y %H:%M:%S"))
         except serial.SerialException:
             self.DisConnected()
 
@@ -153,7 +152,7 @@ class Screen:
         if last_date.strftime("%d/%m/%Y") != now.strftime("%d/%m/%Y"):
             last_date=now
             currentTestCount=0
-        self.count_label.configure(text=str(currentTestCount)+" test results processed on "+now.strftime("%d/%m/%Y"))
+        self.count_label.configure(text=str(currentTestCount)+" test results processed as of "+last_date.strftime("%d/%m/%Y %H:%M:%S"))
 
         self.readThreadStop = threading.Event()
         self.readThread = threading.Thread(target=self.ReadMythic, args=(1,self.readThreadStop))
@@ -175,8 +174,9 @@ class Screen:
         self.con_button.config(text="Connect to Mythic",command=self.Connected, width=30)
         now = datetime.datetime.now()
         if last_date.strftime("%d/%m/%Y") != now.strftime("%d/%m/%Y"):
-            currentTestCount=0
-        self.count_label.configure(text=str(currentTestCount)+" test results processed on "+now.strftime("%d/%m/%Y"))
+           last_date=now
+           currentTestCount=0
+        self.count_label.configure(text=str(currentTestCount)+" test results processed as of "+last_date.strftime("%d/%m/%Y %H:%M:%S"))
 
     def askdirectoryLocal(self):
        dirname = askdirectory()

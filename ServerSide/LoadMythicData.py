@@ -13,6 +13,13 @@ failureFilePath = "F:\\lab_results\\M18_Failed\\"
 MACHINE_ID=1
 con = None
 
+def retNumber(s):
+   try:
+      float_val = float(s)
+      return float_val
+   except ValueError:
+      return -1
+
 class MythicData:
    def __init__(self, labId, testDate, labParams):
       self.lab_id = labId   
@@ -40,41 +47,41 @@ class MythicData:
          elif openRecord==1 and curToks[0].strip()=='OPERATOR' and len(curToks)>2:          #WBC LINE
             param_key=curToks[1].strip()
             param_value=curToks[2].strip()
-            lab_params[param_key] = float(param_value)*1000
+            lab_params[param_key] = retNumber(param_value)*1000
          elif openRecord==1 and curToks[0].strip()=='MON%':              #EOSINOPHILS LINE
             param_key=curToks[0].strip()
             param_value=curToks[1].strip()
-            lab_params[param_key] = round(float(param_value))
+            lab_params[param_key] = round(retNumber(param_value))
          elif openRecord==1 and curToks[0].strip()=='LYM%':              #LYMPHOCYTES LINE
             param_key=curToks[0].strip()
             param_value=curToks[1].strip()
-            lab_params[param_key] = int(float(param_value))
+            lab_params[param_key] = int(retNumber(param_value))
          elif openRecord==1 and curToks[0].strip()=='GRA%':              #NEUTROPHILS LINE
             param_key=curToks[0].strip()
             param_value=curToks[1].strip()
-            lab_params[param_key] = int(float(param_value))
+            lab_params[param_key] = int(retNumber(param_value))
          elif openRecord==1 and curToks[0].strip()=='PLT':               #PLT LINE
             param_key=curToks[0].strip()
             param_value=curToks[1].strip()
-            pltCount = float(param_value)/100
+            pltCount = retNumber(param_value)/100
             #If very less dont enter in lakhs/cumm but in hundred/cumm  
             if pltCount < 1.0:
                lab_params[param_key] = pltCount*100*1000
             else:
                lab_params[param_key] = pltCount
-         elif openRecord==1 and curToks[0].strip() in acrList:           #PARAMETER LINES
+         elif openRecord==1 and curToks[0].strip() in acrList:           #OTHER PARAMETER LINES
             param_key=curToks[0].strip()
             param_value=curToks[1].strip()
             if param_key=='WBC':
-               lab_params[param_key] = float(param_value)*1000
+               lab_params[param_key] = retNumber(param_value)*1000
             else:
-               lab_params[param_key] = param_value
+               lab_params[param_key] = retNumber(param_value)
          elif openRecord==1 and curToks[0].strip()=='END_RESULT':       #END LINES
             #Insert derived defaults Basophils(BPH) and Monocytes(MCY)
             lab_params['BPH']=0
-            eosPhi_value = int(lab_params.get('MON%',0))
-            lymCyt_value = int(lab_params.get('LYM%',0))
-            neuPhi_value = int(lab_params.get('GRA%',0))
+            eosPhi_value = lab_params.get('MON%',0)
+            lymCyt_value = lab_params.get('LYM%',0)
+            neuPhi_value = lab_params.get('GRA%',0)
             lab_params['MCY']=(100-eosPhi_value-lymCyt_value-neuPhi_value)
             print(lab_params.get('MCY'))
             mResultList.append(MythicData(lab_id,testDate,lab_params))
