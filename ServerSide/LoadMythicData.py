@@ -83,7 +83,6 @@ class MythicData:
             lymCyt_value = lab_params.get('LYM%',0)
             neuPhi_value = lab_params.get('GRA%',0)
             lab_params['MCY']=(100-eosPhi_value-lymCyt_value-neuPhi_value)
-            print(lab_params.get('MCY'))
             mResultList.append(MythicData(lab_id,testDate,lab_params))
             lab_id = 0
             lab_params = {}
@@ -153,9 +152,11 @@ while 1:
       if successFlag==0:      # Move file to success folder if all tests were loaded
          successFileName = successFilePath + f
          shutil.move(absolutefilename, successFileName)
+         print("Loading successful.")
       else:                   # Move file to failure folder if some tests were not loaded
          failureFileName = failureFilePath + f
          shutil.move(absolutefilename, failureFileName)
+         print("Loadeding failed.")
    #Wait before next directory check
    time.sleep(30)    
 
