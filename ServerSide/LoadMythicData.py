@@ -156,7 +156,7 @@ while 1:
       else:                   # Move file to failure folder if some tests were not loaded
          failureFileName = failureFilePath + f
          shutil.move(absolutefilename, failureFileName)
-         print("Loadeding failed.")
+         print("Loading failed.")
    #Wait before next directory check
    time.sleep(30)    
 
